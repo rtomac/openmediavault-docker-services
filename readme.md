@@ -1,49 +1,51 @@
 Introduction
 ============
 
-This is an OpenMediaVault plugin for Duplicati when Duplicati is running in a Docker container. Provides a service module (that reports health) and service settings (that link out to the Duplicati UI).
+This is a simple set of OpenMediaVault modules that will report enabled/running status in the service health dashboard for services running as Docker containers on the OpenMediaVault server.
 
-There is an "official" plugin for Duplicati in the OMV extras, but it requires that Duplicati be installed on the host (which is messy).
-https://github.com/OpenMediaVault-Plugin-Developers/openmediavault-duplicati
+It currently supports two services/containers (but can easily be expanded to cover more):
+- Duplicati
+- Hamachi
 
-This doesn't currently support making a .deb file for proper plugin installation (see below for manual installation).
+They require manual installation (file copy). Tested with OMV 3.x.
 
-Tested with OMV 3.x.
+How it works
+============
+
+This is an implementation of `\OMV\Engine\Module\IServiceStatus` that uses [docker inspect](https://docs.docker.com/engine/reference/commandline/inspect/) commands to interrogate the existence and status of the containers.
+
+The containers are referenced by their service name (e.g. 'duplicati').
+
+There is a common base class in `engined/inc/dockerservices.inc` which implements this logic.
+
+Individual service modules live in `engined/module`, e.g. `engined/module/dockerservice-duplicati`. They can be implemented very simply as a subclass with just a constructor implementation.
 
 Installation
 ============
-
-Seed config file
-----------------
-
-Add the following node to /etc/openmediavault/config.xml on the server (OMV requires this):
-```
-<config>
-  <services>
-    <duplicatidocker>
-      <container-name>duplicati</container-name>
-      <port>8200</port>
-    </duplicatidocker>
-  </services>
-</config>
-```
 
 Install files and restart services
 ----------------------------------
 
 From a remote machine:
 ```
-git clone https://github.com/rtomac/openmediavault-duplicati-docker.git
-rsync -av -essh ./openmediavault-duplicati-docker/usr/ root@server:/usr/
-rsync -av -essh ./openmediavault-duplicati-docker/var/ root@server:/var/
+git clone https://github.com/rtomac/openmediavault-docker-services.git
+rsync -av -essh ./openmediavault-docker-services/usr/share/openmediavault/ root@server:/usr/share/openmediavault/
 ssh root@server service openmediavault-engined restart
-ssh root@server rm /var/cache/openmediavault/*admin_js.json
+```
+
+To uninstall
+------------
+
+From a remote machine:
+```
+ssh root@server rm /usr/share/openmediavault/engined/*/dockerservice*.inc
+ssh root@server service openmediavault-engined restart
 ```
 
 Troubleshooting
 ---------------
 
-If you run into trouble (omv daemon fails to start), you can run the process in debug mode:
+If you run into trouble (OMV daemon fails to start), run the process in debug mode:
 ```
 omv-engined -df
 ```
